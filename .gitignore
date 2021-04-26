@@ -1,0 +1,5 @@
+.idea
+__pycache__
+*.html
+*.bak
+data
