@@ -129,7 +129,7 @@ class DStat():
 
 
 
-    def _get_var2nomvals(self, var_col_idx, data_col_idx):
+    def _get_var2nomvals(self, var_col_idx, data_col_idx, seqvals):
 
         # list of nominal values for e.g. travel freq
         # (1-2 days per week, 3-4 days per week, etc)
@@ -140,15 +140,25 @@ class DStat():
         # the list contains the count of each nominal value following the order in nomvals
         var2vals = {}
 
-        # [1:] to remove the question
         trunc_data = self.pd_data[[var_col_idx, data_col_idx]][1:]
-        nomvals = [i for i in set(trunc_data[data_col_idx])]
+
+        if len(seqvals) > 0:
+            nomvals = seqvals
+        else:
+            # [1:] to remove the question
+            for i in set(trunc_data[data_col_idx]):
+                nomval = i
+                if not isinstance(nomval, str):
+                    nomval = "N.A."
+                nomvals.append(nomval)
 
         for row_idx, row in trunc_data.iterrows():
             # ignore header
             if row_idx > 0:
                 var_group = row[var_col_idx]
                 nom_val = row[data_col_idx]
+                if not isinstance(nom_val, str):
+                    nom_val = "N.A."
 
                 # vals will be array of values e.g. [0, 0, 0, 0, 0]
                 # each value represents count of corresponding nominal value
@@ -204,14 +214,25 @@ class DStat():
     # it returns the count of each nominal value of each variable group
     # e.g. each traveling frequency by age group
     # how many age group travels 1-2 days per week, 3-4 days per week, etc.
-    def calculate_counts_of_var(self, var_col_idx, data_col_idx):
-        nomvals, var2vals = self._get_var2nomvals(var_col_idx, data_col_idx)
+    # seqvals represents the sequence of nominal values you want to display
+    # seqvars represents the sequence of variable group you want to display
+    def calculate_counts_of_var(self, var_col_idx, data_col_idx, seqvals, seqvars):
+        nomvals, var2vals = self._get_var2nomvals(var_col_idx, data_col_idx, seqvals)
 
-        logging.info(f"{nomvals}")
-        for var in var2vals:
+        if len(seqvars) == 0:
+            seqvars = var2vals.keys()
+
+        #logging.info(f"{nomvals}")
+        for var in seqvars:
             vals = var2vals[var]
             percent = [numpy.round(i*1.0/sum(vals),2) for i in vals]
-            logging.info(f"{var},{list(zip(vals,percent))}")
+
+            displ = ""
+            for val, pct in list(zip(vals, percent)):
+                displ += f"{val} ({pct}),"
+            displ = displ[:-1]
+            logging.info(f"{var},{displ}")
+
 
     # param @data_col_index is the continuous or ordinal values
     # this method calculates the count/percentage of nominal values (1/2, 3, 4/5)
@@ -349,13 +370,17 @@ class DStat():
 
 
 if __name__ == "__main__" :
-    calculate_poi_duplicates("C:\\Users\\fnatali\\Dropbox\\work\\lkycic\\ai_in_hc\\maptionnaire\\data\\osm")
-    #dstat = DStat("data/data.csv")
+    #calculate_poi_duplicates("C:\\Users\\fnatali\\Dropbox\\work\\lkycic\\ai_in_hc\\maptionnaire\\data\\osm")
+    dstat = DStat("data/data.csv")
     #dstat.calculate_word_counts(51)
     #dstat.calculate_word_counts_from_sent(52)
     #dstat.calculate_grouped_nominal_counts(25)
     #dstat.calculate_basic_stats(21)
     #dstat.calculate_basic_stats_by_var(2,21)
     #dstat.get_ttest_of_var(2,3)
-    #dstat.calculate_counts_of_var(46,25)
+    for i in range(39, 44):
+        dstat.calculate_counts_of_var(46,i,
+                                      ['1 (completely false)','2','3','4','5 (very correct)','N.A.'],
+                                      ['Male','Female'])
+                                      #['15-24','25-54','55-64','65-74','75-84','85 & older'])
     #https://geographicdata.science/book/notebooks/07_local_autocorrelation.html
